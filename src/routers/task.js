@@ -19,7 +19,7 @@ router.get('/tasks', async (req, res) => {
     const match = {};
     let sort = {};
     let limitNumeric;
-
+    let skip;
     if (completed) {
         match.completed = completed === "true";
     }
@@ -59,13 +59,13 @@ router.get('/tasks/:id', async (req, res) => {
 router.patch('/tasks/:id', async (req, res) => {
     const _id = req.params.id;
     try {
-        const task = await Task.findByIdAndUpdate(_id, req.body, {
-            new: true,
-            runValidators: true
-        });
+        const task = await Task.findById(_id);
         if (!task) {
             return res.status(404).send()
         }
+        const objKeys = Object.keys(req.body);
+        objKeys.forEach((param) => task[param] = req.body[param]);
+        await task.save();
         res.status(202).send(task)
     } catch (e) {
         res.status(401).send()
