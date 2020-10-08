@@ -50,6 +50,7 @@ const userSchema = new Schema(
   }
 );
 
+//Hash the plain text password
 userSchema.pre('save', async function (next) {
   const user = this
   if (user.isModified('password')) {
@@ -57,6 +58,18 @@ userSchema.pre('save', async function (next) {
   }
   next()
 })
+
+userSchema.statics.findByCredentials = async (email, password) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new Error('Unable to Login');
+  }
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    throw new Error('Unable to Login');
+  }
+  return user
+}
 
 const User = model("User", userSchema);
 
