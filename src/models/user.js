@@ -1,8 +1,8 @@
 const { model, Schema } = require("mongoose");
 const { isEmail } = require("validator");
 const bcrypt = require('bcrypt');
-const { use } = require("../routers/user");
-
+const jwt = require('jsonwebtoken');
+const Task = require('./task');
 const userSchema = new Schema(
   {
     name: {
@@ -43,13 +43,40 @@ const userSchema = new Schema(
           throw new Error("Age must be a positive number");
         }
       }
-    }
+    },
+    tokens: [{
+      token: {
+        type: String,
+        required: true
+      }
+    }]
   },
   {
     timestamps: true
   }
 );
 
+userSchema.methods.toJSON = function () {
+  const user = this;
+  const userObject = user.toObject();
+  delete userObject.password
+  delete userObject.tokens
+  return userObject
+
+}
+userSchema.methods.generateAuthToken = async function () {
+  const user = this;
+  const token = jwt.sign({
+    "_id": user._id.toString()
+  }, process.env.JWT_SECRET)
+  user.tokens = user.tokens.concat({
+    token
+  })
+
+  await user.save();
+  return token
+}
+//Hash the plain text password
 userSchema.pre('save', async function (next) {
   const user = this
   if (user.isModified('password')) {
@@ -57,6 +84,23 @@ userSchema.pre('save', async function (next) {
   }
   next()
 })
+userSchema.pre('remove', async function (next) {
+  const user = this
+  await Task.deleteMany({ owner: user._id })
+  next()
+})
+
+userSchema.statics.findByCredentials = async (email, password) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new Error('Unable to Login');
+  }
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    throw new Error('Unable to Login');
+  }
+  return user
+}
 
 const User = model("User", userSchema);
 
