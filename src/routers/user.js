@@ -52,7 +52,6 @@ router.post('/users/logoutAll', auth, async (req, res) => {
             "message": "User Logged Out Successfully of All Devices!"
         })
     } catch (e) {
-        console
         res.status(500).send()
     }
 
