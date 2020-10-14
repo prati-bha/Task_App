@@ -92,9 +92,7 @@ router.post('/users/me/avatar', [auth, upload.single('upload')], async (req, res
 
 router.delete('/users/me/avatar', [auth, upload.single('upload')], async (req, res) => {
     req.user.avatar = undefined;
-    console.log(req.user)
     req.user.save().then(() => {
-        console.log(req.user)
         res.status(200).send({
             message: "file deleted"
         })
